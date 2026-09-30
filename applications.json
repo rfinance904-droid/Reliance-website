@@ -1,0 +1,24 @@
+[
+  {
+    "name": "usha martin",
+    "loanAmount": "999999999999",
+    "mobile": "9801597066",
+    "email": "ushamartin99@gmail.com",
+    "state": "Haryana",
+    "loanType": "Business Loan",
+    "monthlyIncome": "22222",
+    "id": 1790248512750,
+    "date": "2026-09-24T11:15:12.750Z"
+  },
+  {
+    "name": "rahul kumar",
+    "loanAmount": "100000",
+    "mobile": "9801597066",
+    "email": "ushamtin99@gmail.com",
+    "state": "Haryana",
+    "loanType": "Home Loan",
+    "monthlyIncome": "111",
+    "id": 1790341368429,
+    "date": "2026-09-25T13:02:48.429Z"
+  }
+]
