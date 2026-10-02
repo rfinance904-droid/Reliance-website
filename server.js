@@ -3,32 +3,25 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const { createClient } = require("@supabase/supabase-js");
+const { MongoClient } = require("mongodb");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-
-// PUBLIC FILES
 app.use(express.static(path.join(__dirname, "public")));
 
-// HOME
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// SUPABASE CLIENT
-function getSupabase() {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SECRET_KEY;
+// MONGODB
+const client = new MongoClient(process.env.MONGODB_URI);
 
-    if (!url || !key) {
-        throw new Error("Supabase environment variables missing");
-    }
-
-    return createClient(url, key);
+async function getDB() {
+    await client.connect();
+    return client.db("relianceFinance");
 }
 
 // SUBMIT APPLICATION
@@ -43,34 +36,22 @@ app.post("/submit-application", async (req, res) => {
             });
         }
 
-        const supabase = getSupabase();
+        const db = await getDB();
 
-        const { error } = await supabase
-            .from("applications")
-            .insert([
-                {
-                    data: application
-                }
-            ]);
+        await db.collection("applications").insertOne({
+            ...application,
+            created_at: new Date()
+        });
 
-        if (error) {
-            console.log("Supabase Error:", error);
-
-            return res.status(500).json({
-                success: false,
-                message: "Application save nahi hua."
-            });
-        }
-
-        return res.json({
+        res.json({
             success: true,
             message: "Application successfully save ho gaya."
         });
 
     } catch (error) {
-        console.log("Server Error:", error);
+        console.log("MongoDB Error:", error);
 
-        return res.status(500).json({
+        res.status(500).json({
             success: false,
             message: "Application save nahi hua."
         });
@@ -80,43 +61,26 @@ app.post("/submit-application", async (req, res) => {
 // GET APPLICATIONS
 app.get("/applications", async (req, res) => {
     try {
-        const supabase = getSupabase();
+        const db = await getDB();
 
-        const { data, error } = await supabase
-            .from("applications")
-            .select("*")
-            .order("created_at", {
-                ascending: false
-            });
+        const applications = await db
+            .collection("applications")
+            .find({})
+            .sort({ created_at: -1 })
+            .toArray();
 
-        if (error) {
-            console.log("Supabase Error:", error);
-
-            return res.status(500).json({
-                success: false,
-                message: "Applications load nahi hui."
-            });
-        }
-
-        const applications = data.map((row) => ({
-            id: row.id,
-            date: row.created_at,
-            ...(row.data || {})
-        }));
-
-        return res.json(applications);
+        res.json(applications);
 
     } catch (error) {
-        console.log("Server Error:", error);
+        console.log("MongoDB Error:", error);
 
-        return res.status(500).json({
+        res.status(500).json({
             success: false,
             message: "Applications load nahi hui."
         });
     }
 });
 
-// LOCAL SERVER
 if (process.env.VERCEL !== "1") {
     app.listen(PORT, () => {
         console.log("RELIANCE FINANCE SERVER RUNNING ON PORT " + PORT);
